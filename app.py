@@ -100,28 +100,42 @@ if uploaded_file:
     st.success(f"Found {len(lots)} possible lots")
 
     df = pd.DataFrame({
+        "Select": [False]*len(lots),
         "Lot": lots,
         "Buy Price (€)": [0]*len(lots),
         "Expected Sell (€)": [0]*len(lots)
     })
 
-    edited_df = st.data_editor(df, num_rows="dynamic")
+    edited_df = st.data_editor(
+        df,
+        num_rows="dynamic",
+        use_container_width=True
+    )
 
-    if st.button("🔍 Auto Estimate Prices"):
+    # -------- AUTO ESTIMATE ONLY SELECTED --------
+    if st.button("🔍 Auto Estimate Selected"):
 
-        with st.spinner("Searching online prices..."):
+        selected = edited_df[edited_df["Select"] == True]
 
-            for i, row in edited_df.iterrows():
+        if selected.empty:
+            st.warning("Select at least one row first ☝️")
+        else:
 
-                if row["Expected Sell (€)"] == 0:
+            with st.spinner("Analyzing selected lots..."):
 
-                    price = estimate_price(row["Lot"])
+                for i in selected.index:
+
+                    query = edited_df.at[i, "Lot"]
+
+                    price = estimate_price(query)
+
                     edited_df.at[i, "Expected Sell (€)"] = price
 
-        st.success("Automatic estimation completed!")
+            st.success("Selected estimation done!")
 
-        st.data_editor(edited_df, num_rows="dynamic")
+            st.data_editor(edited_df, use_container_width=True)
 
+    # -------- ANALYZE PROFIT --------
     if st.button("📊 Analyze Profit"):
 
         edited_df["Profit (€)"] = (
@@ -139,4 +153,4 @@ if uploaded_file:
 
         edited_df["Advice"] = edited_df["Profit (€)"].apply(advice)
 
-        st.dataframe(edited_df)
+        st.dataframe(edited_df, use_container_width=True)
